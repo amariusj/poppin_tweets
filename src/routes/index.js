@@ -34,7 +34,7 @@ function checkUserAuth(req, res, next) {
   return res.redirect('/login');
 }
 
-function validateRegisterFields(req, res, next) {
+function validateRegisterFields async (req, res, next) {
   if (
     req.body.firstName &&
     req.body.lastName &&
@@ -42,7 +42,10 @@ function validateRegisterFields(req, res, next) {
     req.body.username &&
     req.body.password &&
     req.body.confirmedpassword
-  ) return next();
+  ) {
+    console.log('success');
+    return next();
+  }
   //If fields weren't filled, then run error
   let err = new Error('All fields are required!');
   err.url = 'register';
@@ -50,17 +53,18 @@ function validateRegisterFields(req, res, next) {
   return next(err);
 }
 
-function validatePasswordsMatch(req, res, next) {
+function validatePasswordsMatch async (req, res, next) {
   if (req.body.password !== req.body.confirmedpassword) {
     let err = new Error('Password must match!');
     err.url = 'register';
     err.status = 400;
     return next(err);
   }
+  console.log('success');
   return next();
 }
 
-function checkEmail(req, res, next) {
+function checkEmail async (req, res, next) {
 
   User.findOne({ email: req.body.email })
   .exec(function (error, user) {
@@ -75,7 +79,7 @@ function checkEmail(req, res, next) {
       err.url = 'register';
       return next(err)
     }
-
+    console.log('success');
     return next();
   });
 }
@@ -112,7 +116,7 @@ router.get('/register', (req, res, next) => {
 });
 
 //Registers a new user
-router.post('/register', validateRegisterFields, validatePasswordsMatch, checkEmail, (req, res, next) => {
+router.post('/register', validateRegisterFields, validatePasswordsMatch, checkEmail, async (req, res, next) => {
 
   let userData = {
     firstName: req.body.firstName,
