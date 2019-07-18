@@ -142,8 +142,7 @@ router.post('/register', validateRegisterFields, validatePasswordsMatch, checkEm
 router.get('/login', (req, res, next) => {
   res.render('login', {
     user: req.session.userId,
-    name: req.session.username,
-    clientID: clientID
+    name: req.session.username
   });
 });
 
@@ -171,7 +170,7 @@ router.post('/login', validateLoginCredentials, (req, res, next) => {
     if (!user) {
       let err = new Error('No User Found');
       err.status = 400;
-      err.url = 'register';
+      err.url = 'login';
       return next(err)
     }
 
