@@ -1,0 +1,12 @@
+extends layout.pug
+
+block content
+  .container.my-4
+    .row
+      .col-6
+        h5 #{fullName}
+        p
+          | #{bio}
+        ul.nav.mt-5
+          li.nav-item
+            a.nav-link.text-light.btn-danger.btn.my-2.my-sm-0(href='/delete') Delete User

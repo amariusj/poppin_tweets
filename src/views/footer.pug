@@ -1,0 +1,15 @@
+if user
+  .row.py-3
+    .col-md-7
+      ul.nav
+        li.nav-item
+          a.nav-link.text-light.btn-danger.btn.my-2.my-sm-0(href='/signout') Sign Out
+        li.nav-item.mx-3
+          a.nav-link.text-light.btn-danger.btn.my-2.my-sm-0(href='/delete') Delete User
+    .col-md.text-md-right
+      small © 2017 Full Stack Conf & Treehouse
+
+else if !user
+  .row.py-3
+    .col-md.text-md-right
+      small © 2017 Full Stack Conf & Treehouse

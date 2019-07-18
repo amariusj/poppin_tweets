@@ -1,0 +1,28 @@
+extends layout.pug
+
+block content
+  .py-4
+    form(action='/register', method='post')
+      h5.text-center Basic Info
+      .row
+        .form-group.col-md-6
+          label(for='inputFirstName') First Name
+          input#firstName.form-control(type='text', name='firstName', placeholder='First Name')
+        .form-group.col-md-6
+          label(for='inputLastName') Last Name
+          input#lastName.form-control(type='text', name='lastName', placeholder='Last Name')
+      .row
+        .form-group.col-md-6
+          label(for='email') Email address
+          input#email.form-control(type='email', name='email', placeholder='name@example.com')
+        .form-group.col-md-6
+          label(for='username') Username
+          input#username.form-control(type='text', name='username', placeholder='username123')
+      .row
+        .form-group.col-md-6
+          label(for='password') Password
+          input#password.form-control(type='password', name='password', placeholder='********')
+        .form-group.col-md-6
+          label(for='confirmedpassword') Confirm Password
+          input#confirmedpassword.form-control(type='password', name='confirmedpassword' placeholder='********')
+      button.btn.btn-light(type='submit') Submit
