@@ -29,6 +29,14 @@ function fetchApi(endpoint) {
   return fetch(endpoint).then(response => response.json());
 }
 
+router.use(( async function(req, res, next) {
+  let urls = await fetchApi(`http://api.giphy.com/v1/gifs/search?q=funny&limit=12&api_key=dc6zaTOxFJmzC`)
+  .then(data => data.data);
+
+  req.session.urls = urls;
+  next();
+}))
+
 //Renders home page
 router.get('/', async (req, res, next) => {
   if (!req.session.userId) {
@@ -46,7 +54,7 @@ router.get('/', async (req, res, next) => {
       return res.render('home', {
         user: req.session.userId,
         name: req.session.username,
-        urls: urls,
+        urls: req.session.urls,
         tweets: tweets.statuses
       });
     });
