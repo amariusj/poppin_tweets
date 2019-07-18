@@ -31,9 +31,7 @@ app.set('views', __dirname + '/views');
 const course  = "mongodb://localhost:27017/twitter"
 
 //Connect to mongoDB
-// mongoose.connect('mongodb://heroku_bkj31v79:j3a4jbtv361qr9mj2l4esifj8p@ds151997.mlab.com:51997/heroku_bkj31v79' || course);
-mongoose.connect(course);
-
+mongoose.connect(process.env.MONGODB_URI || course);
 
 //Holds the database connection object
 const db = mongoose.connection;

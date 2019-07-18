@@ -34,7 +34,7 @@ function checkUserAuth(req, res, next) {
   return res.redirect('/login');
 }
 
-function validateRegisterFields async (req, res, next) {
+function validateRegisterFields (req, res, next) {
   if (
     req.body.firstName &&
     req.body.lastName &&
@@ -53,7 +53,7 @@ function validateRegisterFields async (req, res, next) {
   return next(err);
 }
 
-function validatePasswordsMatch async (req, res, next) {
+function validatePasswordsMatch (req, res, next) {
   if (req.body.password !== req.body.confirmedpassword) {
     let err = new Error('Password must match!');
     err.url = 'register';
@@ -64,7 +64,7 @@ function validatePasswordsMatch async (req, res, next) {
   return next();
 }
 
-function checkEmail async (req, res, next) {
+function checkEmail (req, res, next) {
 
   User.findOne({ email: req.body.email })
   .exec(function (error, user) {
