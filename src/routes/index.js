@@ -29,6 +29,57 @@ function fetchApi(endpoint) {
   return fetch(endpoint).then(response => response.json());
 }
 
+function checkUserAuth(req, res, next) {
+  if (req.session.userId) return next();
+  return res.redirect('/login');
+}
+
+function validateRegisterFields(req, res, next) {
+  if (
+    req.body.firstName &&
+    req.body.lastName &&
+    req.body.email &&
+    req.body.username &&
+    req.body.password &&
+    req.body.confirmedpassword
+  ) return next();
+  //If fields weren't filled, then run error
+  let err = new Error('All fields are required!');
+  err.url = 'register';
+  err.status = 400;
+  return next(err);
+}
+
+function validatePasswordsMatch(req, res, next) {
+  if (req.body.password !== req.body.confirmedpassword) {
+    let err = new Error('Password must match!');
+    err.url = 'register';
+    err.status = 400;
+    return next(err);
+  }
+  return next();
+}
+
+function checkEmail(req, res, next) {
+
+  User.findOne({ email: req.body.email })
+  .exec(function (error, user) {
+
+    if (error) {
+      return next(error)
+    }
+
+    if (user) {
+      let err = new Error('Email address already associated with an account');
+      err.status = 400;
+      err.url = 'register';
+      return next(err)
+    }
+
+    return next();
+  });
+}
+
 router.use(( async function(req, res, next) {
   let urls = await fetchApi(`http://api.giphy.com/v1/gifs/search?q=funny&limit=12&api_key=dc6zaTOxFJmzC`)
   .then(data => data.data);
@@ -38,29 +89,18 @@ router.use(( async function(req, res, next) {
 }))
 
 //Renders home page
-router.get('/', async (req, res, next) => {
-  if (!req.session.userId) {
-    res.redirect('/login')
-  } else {
-
-    let urls = await fetchApi(`http://api.giphy.com/v1/gifs/search?q=funny&limit=12&api_key=dc6zaTOxFJmzC`)
-    .then(data => data.data);
-
-    let client = await twitter.get('search/tweets', {q: `funny`, count: 12}, (error, tweets, response) => {
-      if (error) {
-        throw error;
-      }
-
-      return res.render('home', {
-        user: req.session.userId,
-        name: req.session.username,
-        urls: req.session.urls,
-        tweets: tweets.statuses
-      });
+router.get('/', checkUserAuth, async (req, res, next) => {
+  let client = await twitter.get('search/tweets', {q: `funny`, count: 12}, (error, tweets, response) => {
+    if (error) {
+      throw error;
+    }
+    return res.render('home', {
+      user: req.session.userId,
+      name: req.session.username,
+      urls: req.session.urls,
+      tweets: tweets.statuses
     });
-    //Creates a for loop to pull 6 different images/gifs and then push each to the array
-    //render the home page using the array as a varibale and looping each image/gif
-  }
+  });
 });
 
 //Renders Registration page
@@ -72,79 +112,26 @@ router.get('/register', (req, res, next) => {
 });
 
 //Registers a new user
-router.post('/register', (req, res, next) => {
-  //Validation for if all fields have been entered that are required
-  if (
-    //If these fields are filled in
-    req.body.firstName &&
-    req.body.lastName &&
-    req.body.email &&
-    req.body.username &&
-    req.body.password &&
-    req.body.confirmedpassword
+router.post('/register', validateRegisterFields, validatePasswordsMatch, checkEmail, (req, res, next) => {
 
-  ) {
-    //Then check to ensure the passwords match. If not then run an error
-    if (req.body.password !== req.body.confirmedpassword) {
-
-      let err = new Error('Password must match!');
-      err.url = 'register';
-      err.status = 400;
-      return next(err);
-    }
-
-    let userData = {
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      email: req.body.email,
-      username: req.body.username,
-      password: req.body.password
-    }
-
-    User.findOne({ username: req.body.username})
-    .exec(function (error, user) {
-      if (error) {
-        return next(error)
-      } else if (user) {
-        let err = new Error('Username already exists');
-        err.status = 400;
-        err.url = 'register';
-        return next(err);
-      } else {
-        User.findOne({ email: req.body.email})
-        .exec(function (error, user) {
-          if (error) {
-            return next(error)
-          } else if (user) {
-            let err = new Error('Email address already associated with an account');
-            err.status = 400;
-            err.url = 'register';
-            return next(err)
-          } else {
-            //Inserts the data object into Mongo
-            User.create(userData, (error, user) => {
-              if (error) {
-                return next(error);
-              } else {
-                req.session.userId = user._id;
-                req.session.username = user.username.charAt(0).toUpperCase() + user.username.slice(1);
-                req.session.lastname = user.lastName;
-                res.status(201).redirect('/');
-              }
-            });
-          }
-        });
-      }
-    });
-
-  } else {
-    //If fields weren't filled, then run error
-    let err = new Error('All fields are required!');
-    err.url = 'register';
-    err.status = 400;
-    return next(err);
-
+  let userData = {
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    email: req.body.email,
+    username: req.body.username,
+    password: req.body.password
   }
+
+  User.create(userData, (error, user) => {
+    if (error) {
+      return next(error);
+    } else {
+      req.session.userId = user._id;
+      req.session.username = user.username.charAt(0).toUpperCase() + user.username.slice(1);
+      req.session.lastname = user.lastName;
+      res.status(201).redirect('/');
+    }
+  });
 });
 
 //Renders login page
@@ -156,49 +143,51 @@ router.get('/login', (req, res, next) => {
   });
 });
 
-//Logs in a User
-router.post('/login', (req, res, next) => {
-  //Validation for if all fields have been entered that are required
+function validateLoginCredentials(req, res, next) {
   if (
-    //If these fields are filled in
     req.body.email &&
     req.body.password
-  ) {
-    //Validate Username is a username in our system or email in our system
-    User.findOne({ email : req.body.email })
-    .exec(function (error, user) {
-      if (error) {
-        return next(error);
-      } else if (!user) {
-          let err = new Error('No User Found');
-          err.url = 'login';
-          err.status = 400;
-          return next(err);
-      } else if (user) {
-        bcrypt.compare(req.body.password, user.password)
-        .then(function(response) {
-          if (response) {
-            req.session.userId = user._id;
-            req.session.username = user.username.charAt(0).toUpperCase() + user.username.slice(1);
-            req.session.lastname = user.lastName;
-            return res.redirect('/');
-          } else {
-            let err = new Error('Sorry but the Username and Password combination do not match!');
-            err.url = 'login';
-            err.status = 400;
-            return next(err);
-          }
-        })
-        .catch(err => console.error(err.message));
+  ) return next();
+
+  let err = new Error('All fields are required!');
+  err.url = 'login';
+  err.status = 400;
+  return next(err);
+}
+
+//Logs in a User
+router.post('/login', validateLoginCredentials, (req, res, next) => {
+  User.findOne({ email: req.body.email })
+  .exec(function (error, user) {
+
+    if (error) {
+      return next(error)
+    }
+
+    if (!user) {
+      let err = new Error('No User Found');
+      err.status = 400;
+      err.url = 'register';
+      return next(err)
+    }
+
+    bcrypt.compare(req.body.password, user.password)
+    .then(function(response) {
+
+      if (response) {
+        req.session.userId = user._id;
+        req.session.username = user.username.charAt(0).toUpperCase() + user.username.slice(1);
+        req.session.lastname = user.lastName;
+        return res.redirect('/');
       }
-    });
-  } else {
-    //If fields weren't filled, then run error
-    let err = new Error('All fields are required!');
-    err.url = 'login';
-    err.status = 400;
-    return next(err);
-  }
+
+      let err = new Error('Sorry but the Username and Password combination do not match!');
+      err.url = 'login';
+      err.status = 400;
+      return next(err);
+
+    }).catch(err => console.error(err.message));
+  });
 });
 
 router.get('/signout', (req, res, next) => {
@@ -206,20 +195,16 @@ router.get('/signout', (req, res, next) => {
   res.redirect('/');
 });
 
-router.get('/delete', (req, res, next) => {
-  if (req.session.userId) {
-    User.deleteOne({ _id: req.session.userId })
-    .exec(function(error, user) {
-      if (error) {
-        return next(error);
-      } else {
-        req.session.destroy();
-        res.redirect('/');
-      }
-    });
-  } else {
-    res.redirect('/login');
-  }
+router.get('/delete', checkUserAuth, (req, res, next) => {
+  User.deleteOne({ _id: req.session.userId })
+  .exec(function(error, user) {
+    if (error) {
+      return next(error);
+    } else {
+      req.session.destroy();
+      res.redirect('/');
+    }
+  });
 });
 
 //Handles search function
