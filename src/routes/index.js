@@ -4,16 +4,20 @@ const session = require('express-session');
 const auth = require('basic-auth');
 const bcrypt = require("bcrypt");
 const fetch = require("node-fetch");
-const twit = require('twitter'),
-  twitter = new twit({
-    consumer_key: 'vNMmavoFN2QxhRatYfS7Yil5Z',
-    consumer_secret: 'SDeMcccAjCNSdemBZSz6sCtOzXM0YHbWSmXkjOfszGc3KwWs1H',
-    access_token_key: '442187206-7fbPiM40f0W8MZWw0FIfuqubXrTVq7u1cpmtXqsT',
-    access_token_secret: 'eTXKHGniqUaPVr03r9V0trObKuB3U7mVEp2hgOyCGcjp3'
-  })
+const dotenv = require('dotenv');
 
 //Require models
 const User = require('../models/user');
+
+dotenv.config();
+
+const twit = require('twitter'),
+  twitter = new twit({
+    consumer_key: `${process.env.CONSUMER_KEY}`,
+    consumer_secret: `${process.env.CONSUMER_SECRET}`,
+    access_token_key: `${process.env.ACCESS_TOKEN_KEY}`,
+    access_token_secret: `${process.env.ACCESS_TOKEN_SECRET}`
+  });
 
 //Uses the session function
 router.use(session({
@@ -21,9 +25,6 @@ router.use(session({
   resave: true,
   saveUninitialized: false
 }));
-
-const clientID = `811d914139f477648685`;
-const clientSecret = `3c1d2b18c4e5c7c0c2d27aff3d72e216fa59872a`;
 
 function fetchApi(endpoint) {
   return fetch(endpoint).then(response => response.json());
@@ -96,8 +97,11 @@ router.use(( async function(req, res, next) {
 router.get('/', checkUserAuth, async (req, res, next) => {
   let client = await twitter.get('search/tweets', {q: `funny`, count: 12}, (error, tweets, response) => {
     if (error) {
-      throw error;
+      error.status = 400;
+      error.url = 'home';
+      return next(error);
     }
+    console.log(tweets);
     return res.render('home', {
       user: req.session.userId,
       name: req.session.username,
