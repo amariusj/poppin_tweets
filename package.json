@@ -4,7 +4,7 @@
   "description": "An app that let's you see each week's popular tweet hashtags and shares them with corresponding gifs from giphy",
   "main": "src/app.js",
   "dependencies": {
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "basic-auth": "^2.0.1",
     "bcrypt": "^3.0.6",
     "dotenv": "^8.0.0",
